@@ -191,9 +191,38 @@ At each round:
 4. record:
    - full posterior,
    - posterior mean,
-   - observed distinct count.
+   - observed distinct count,
+   - observed occupancy vector.
 
 This lets you directly see how the posterior sharpens as more data arrives.
+
+The occupancy vector shown in the per-round plots is:
+
+\[
+\text{occ} = \text{sorted observed colour counts so far, in descending order.}
+\]
+
+For example, if the cumulative sample history so far is equivalent to:
+
+```text
+A, B, A, C, A, B, A
+```
+
+then the seen-colour counts are:
+
+```text
+A: 4
+B: 2
+C: 1
+```
+
+so:
+
+```text
+occ = [4, 2, 1]
+```
+
+The full models use `occ`, not just the number of distinct colours.
 
 ---
 
@@ -229,9 +258,129 @@ A side-by-side comparison of the final posterior over `C` for all three methods.
 ### `run_info.txt`
 The exact run configuration and the true underlying counts.
 
+This is the audit file for generated runs. If you construct data with `--m`, the actual generated counts vector is written here as:
+
+```text
+counts=[...]
+```
+
+so you can compare posterior behavior against the original hidden urn.
+
+For the GIF-enabled script, `run_info.txt` also records the detected GIF backend.
+
 ---
 
-## 7. Command-line usage
+## 7. CLI flags
+
+This document covers the base script:
+
+```bash
+python invisible_palette_toolkit.py
+```
+
+For the GIF-enabled companion script, see:
+
+`invisible_palette_toolkit_with_gif.md`
+
+### Dataset construction
+
+- `--counts`
+  Explicit comma-separated per-colour counts such as `4,3,7`.
+  If supplied, this overrides generated-data settings.
+
+- `--m`
+  Number of occupied colours to generate when `--counts` is not supplied.
+
+- `--count-mode`
+  How generated counts are created. Options:
+  - `uniform`
+  - `skew`
+  - `one_heavy`
+
+- `--min-count`
+  Minimum number of balls per colour in generated data.
+
+- `--max-count`
+  Maximum number of balls per colour in generated data.
+
+Important:
+- `--m` is the number of colours
+- `--min-count` and `--max-count` are counts per colour, not numbers of colours
+
+Example:
+
+```bash
+python invisible_palette_toolkit.py \
+  --m 5 \
+  --count-mode uniform \
+  --min-count 1 \
+  --max-count 10
+```
+
+This means:
+- generate `5` colours
+- assign each colour a count between `1` and `10`
+
+### Sampling process
+
+- `--batch-size`
+  Number of with-replacement draws per round.
+
+- `--rounds`
+  Number of sequential posterior updates.
+
+- `--seed`
+  Random seed used for count generation and sampling.
+
+### Bayesian model
+
+- `--c-max`
+  Maximum candidate hidden colour count `C` considered by the posterior.
+
+- `--alpha`
+  Symmetric Dirichlet concentration parameter used by the `full_dirichlet` model.
+
+- `--prior-type`
+  Prior over candidate `C`. Options:
+  - `uniform`
+  - `geometric`
+
+- `--prior-lam`
+  Parameter for the geometric prior on `C`.
+  This is only used when `--prior-type geometric`.
+
+Interpretation:
+
+- `--prior-type uniform`
+  gives equal prior weight to all candidate values of `C`
+
+- `--prior-type geometric`
+  favors smaller values of `C` a priori
+
+with roughly:
+
+\[
+P(C=c) \propto \lambda (1-\lambda)^{c-1}.
+\]
+
+So:
+
+- larger `--prior-lam` pushes more mass toward small `C`
+- smaller `--prior-lam` makes the prior more spread out
+
+Important distinction:
+
+- `--prior-type` and `--prior-lam` define a prior on hidden support size `C`
+- `--alpha` defines the Dirichlet prior on colour probabilities inside the `full_dirichlet` model
+
+### Output
+
+- `--outdir`
+  Directory where plots, CSVs, run metadata, and optional GIF outputs are written.
+
+---
+
+## 8. Command-line usage
 
 Show help:
 
@@ -244,10 +393,17 @@ Basic run with explicit counts:
 ```bash
 python invisible_palette_toolkit.py \
   --counts 4,3,7 \
+  --m 5 \
+  --count-mode uniform \
+  --min-count 1 \
+  --max-count 10 \
   --batch-size 8 \
   --rounds 20 \
+  --seed 0 \
   --c-max 15 \
   --alpha 0.5 \
+  --prior-type uniform \
+  --prior-lam 0.2 \
   --outdir results
 ```
 
@@ -258,6 +414,42 @@ Here the true urn is:
 - colour 2 appears 7 times
 
 so the true hidden number of occupied colours is `m = 3`.
+
+Generated-data run:
+
+```bash
+python invisible_palette_toolkit.py \
+  --m 8 \
+  --count-mode uniform \
+  --min-count 1 \
+  --max-count 10 \
+  --batch-size 8 \
+  --rounds 20 \
+  --seed 0 \
+  --c-max 20 \
+  --alpha 0.5 \
+  --prior-type uniform \
+  --prior-lam 0.2 \
+  --outdir results_generated
+```
+
+---
+
+## 9. Performance note
+
+The inference core has been optimized substantially, especially for larger `rounds` and `c_max`, by:
+
+- vectorizing the Stirling-number dynamic program,
+- precomputing falling-factorial terms,
+- precomputing shared Dirichlet log-gamma terms,
+- delaying `matplotlib` import until plots are actually written.
+
+This makes posterior computation much faster, but end-to-end runtime can still be dominated by:
+
+- PNG rendering,
+- `matplotlib` startup on first plot.
+
+For GIF-specific runtime notes, frame generation, and animation flags, see `invisible_palette_toolkit_with_gif.md`.
 
 ---
 
