@@ -40,14 +40,26 @@ from pathlib import Path
 import argparse
 import csv
 import math
+import os
+import tempfile
 from collections import Counter
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+
+plt = None
+
+
+def ensure_matplotlib() -> None:
+    global plt
+    if plt is not None:
+        return
+    os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "matplotlib"))
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as imported_plt
+    plt = imported_plt
 
 
 # -----------------------------
@@ -111,17 +123,14 @@ def posterior_mean(c_vals: np.ndarray, post: np.ndarray) -> float:
 def log_stirling2_table(n_max: int, k_max: int) -> np.ndarray:
     table = np.full((n_max + 1, k_max + 1), -np.inf, dtype=float)
     table[0, 0] = 0.0
+    log_k = np.zeros(k_max + 1, dtype=float)
+    if k_max >= 1:
+        log_k[1:] = np.log(np.arange(1, k_max + 1))
     for n in range(1, n_max + 1):
-        for k in range(1, min(n, k_max) + 1):
-            a = table[n - 1, k] + math.log(k) if np.isfinite(table[n - 1, k]) else -np.inf
-            b = table[n - 1, k - 1]
-            if np.isneginf(a):
-                table[n, k] = b
-            elif np.isneginf(b):
-                table[n, k] = a
-            else:
-                m = max(a, b)
-                table[n, k] = m + math.log(math.exp(a - m) + math.exp(b - m))
+        max_k = min(n, k_max)
+        a = table[n - 1, 1:max_k + 1] + log_k[1:max_k + 1]
+        b = table[n - 1, :max_k]
+        table[n, 1:max_k + 1] = np.logaddexp(a, b)
     return table
 
 
@@ -129,6 +138,27 @@ def log_falling_factorial(c: int, k: int) -> float:
     if k > c:
         return float("-inf")
     return gammaln(c + 1) - gammaln(c - k + 1)
+
+
+def build_log_factorials(c_max: int) -> np.ndarray:
+    vals = np.zeros(c_max + 1, dtype=float)
+    for i in range(1, c_max + 1):
+        vals[i] = vals[i - 1] + math.log(i)
+    return vals
+
+
+def build_log_falling_factorial_table(c_candidates: np.ndarray) -> np.ndarray:
+    c_max = int(np.max(c_candidates))
+    log_factorials = build_log_factorials(c_max)
+    table = np.full((c_max + 1, len(c_candidates)), -np.inf, dtype=float)
+    for k in range(c_max + 1):
+        valid = c_candidates >= k
+        table[k, valid] = log_factorials[c_candidates[valid]] - log_factorials[c_candidates[valid] - k]
+    return table
+
+
+def vectorized_lgamma(values: np.ndarray) -> np.ndarray:
+    return np.fromiter((math.lgamma(float(v)) for v in values), dtype=float, count=len(values))
 
 
 # -----------------------------
@@ -204,13 +234,24 @@ def run_experiment(
     seed: int,
 ) -> SequentialResult:
     rng = np.random.default_rng(seed)
-    probs = np.ones(len(data), dtype=float) / len(data)
+    data_arr = np.asarray(data)
 
     sampled = []
     counts = Counter()
 
     max_t = batch_size * rounds
-    logS2 = log_stirling2_table(max_t, min(max_t, int(np.max(c_candidates))))
+    c_max = int(np.max(c_candidates))
+    logS2 = log_stirling2_table(max_t, min(max_t, c_max))
+    log_c = np.log(c_candidates)
+    log_falling = build_log_falling_factorial_table(c_candidates)
+    round_ts = np.arange(batch_size, max_t + 1, batch_size, dtype=float)
+    neg_t_log_c = -np.outer(round_ts, log_c)
+    c_alpha = c_candidates.astype(float) * alpha
+    lgamma_c_alpha = vectorized_lgamma(c_alpha)
+    lgamma_t_plus_c_alpha = np.vstack([
+        vectorized_lgamma(c_alpha + t) for t in round_ts
+    ])
+    log_gamma_alpha = gammaln(alpha)
 
     posteriors = {
         "distinct_only": [],
@@ -224,24 +265,27 @@ def run_experiment(
     observed_counts_per_round = []
 
     for r in range(1, rounds + 1):
-        draws = rng.choice(np.array(data), size=batch_size, replace=True, p=probs)
+        draws = rng.choice(data_arr, size=batch_size, replace=True)
         sampled.extend(draws.tolist())
         counts.update(draws.tolist())
 
         t = len(sampled)
         occ = sorted(counts.values(), reverse=True)
         k = len(occ)
+        round_idx = r - 1
+        log_falling_k = log_falling[k]
 
         # distinct_only
-        ll_distinct = np.array([loglik_distinct_only(int(c), t, k, logS2) for c in c_candidates], dtype=float)
+        ll_distinct = log_falling_k + logS2[t, k] + neg_t_log_c[round_idx]
         post_distinct = normalize_log_probs(log_prior + ll_distinct)
 
         # full_uniform
-        ll_fu = np.array([loglik_full_uniform(int(c), occ) for c in c_candidates], dtype=float)
+        ll_fu = log_falling_k + neg_t_log_c[round_idx]
         post_fu = normalize_log_probs(log_prior + ll_fu)
 
         # full_dirichlet
-        ll_fd = np.array([loglik_full_dirichlet(int(c), occ, alpha) for c in c_candidates], dtype=float)
+        occ_term = sum(gammaln(x + alpha) - log_gamma_alpha for x in occ)
+        ll_fd = log_falling_k + lgamma_c_alpha - lgamma_t_plus_c_alpha[round_idx] + occ_term
         post_fd = normalize_log_probs(log_prior + ll_fd)
 
         posteriors["distinct_only"].append(post_distinct)
@@ -310,6 +354,7 @@ def _save_heatmap(
     title: str,
     path: Path,
 ) -> None:
+    ensure_matplotlib()
     plt.figure(figsize=(10, 5.5))
     plt.imshow(
         matrix.T,
@@ -333,6 +378,7 @@ def save_plots(
     c_candidates: np.ndarray,
     true_m: int,
 ) -> None:
+    ensure_matplotlib()
     for mode, matrix in result.posteriors.items():
         _save_heatmap(
             matrix=matrix,
