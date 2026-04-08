@@ -5,7 +5,7 @@ set -euo pipefail
 python invisible_palette_joint_toolkit_with_gif.py \
   --counts 4,3,7,35,21,1,6,11,100 \
   --batch-size 6 \
-  --rounds 20 \
+  --rounds 120 \
   --seed 0 \
   --c-max 12 \
   --alpha 0.5 \
