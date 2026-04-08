@@ -1,0 +1,15 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+python invisible_palette_joint_toolkit_with_gif.py \
+  --counts 4,3,7,35,21,1,6,11,100 \
+  --batch-size 6 \
+  --rounds 20 \
+  --seed 0 \
+  --c-max 12 \
+  --alpha 0.5 \
+  --prior-type uniform \
+  --prior-lam 0.2 \
+  --gif-fps 2.0 \
+  --outdir joint_ex_437

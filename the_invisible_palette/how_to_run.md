@@ -4,6 +4,13 @@ This file collects explicit run commands for the Invisible Palette scripts in th
 
 All commands are written with every relevant flag shown so runs are auditable and easy to modify.
 
+There is also one editable runner shell script per Python entrypoint:
+
+- `bash run_invisible_palette_toolkit.sh`
+- `bash run_invisible_palette_toolkit_with_gif.sh`
+- `bash run_invisible_palette_joint_toolkit_with_gif.sh`
+- `bash run_invisible_palette_policy_toolkit.sh`
+
 ---
 
 ## 1. Base Toolkit
@@ -133,18 +140,18 @@ Script:
 python invisible_palette_joint_toolkit_with_gif.py
 ```
 
-This script jointly infers:
-
-- hidden support size `C`
-- Dirichlet concentration `alpha`
-
-and compares three views on the same sample stream:
+This script compares:
 
 - `full_uniform`
-- `fixed_alpha_dirichlet`
-- `joint_C_alpha`
+- `full_dirichlet`
+- `joint_c_alpha`
 
-### Generated counts with a generated alpha grid and GIFs
+It uses:
+
+- `--alpha` for the fixed Dirichlet comparison model
+- an internal alpha grid for the joint model
+
+### Generated counts with GIFs
 
 ```bash
 python invisible_palette_joint_toolkit_with_gif.py \
@@ -158,71 +165,26 @@ python invisible_palette_joint_toolkit_with_gif.py \
   --c-max 20 \
   --prior-type uniform \
   --prior-lam 0.2 \
-  --fixed-alpha 0.5 \
-  --alpha-min 0.1 \
-  --alpha-max 3.0 \
-  --alpha-points 25 \
-  --alpha-grid-scale log \
-  --alpha-prior-type log_uniform \
-  --make-gif \
+  --alpha 0.5 \
   --gif-fps 2.0 \
   --outdir joint_results
 ```
 
-### Explicit counts with a generated alpha grid and GIFs
+### Explicit counts with GIFs
 
 ```bash
 python invisible_palette_joint_toolkit_with_gif.py \
   --counts 4,3,7 \
-  --m 5 \
-  --count-mode uniform \
-  --min-count 1 \
-  --max-count 10 \
   --batch-size 6 \
   --rounds 20 \
   --seed 0 \
   --c-max 12 \
   --prior-type uniform \
   --prior-lam 0.2 \
-  --fixed-alpha 0.5 \
-  --alpha-min 0.1 \
-  --alpha-max 3.0 \
-  --alpha-points 25 \
-  --alpha-grid-scale log \
-  --alpha-prior-type log_uniform \
-  --make-gif \
+  --alpha 0.5 \
   --gif-fps 2.0 \
   --outdir joint_ex_437
 ```
-
-### Explicit counts with an explicit alpha grid and GIFs
-
-```bash
-python invisible_palette_joint_toolkit_with_gif.py \
-  --counts 4,3,7 \
-  --m 5 \
-  --count-mode uniform \
-  --min-count 1 \
-  --max-count 10 \
-  --batch-size 6 \
-  --rounds 20 \
-  --seed 0 \
-  --c-max 12 \
-  --prior-type uniform \
-  --prior-lam 0.2 \
-  --fixed-alpha 0.5 \
-  --alpha-candidates 0.1,0.2,0.5,1.0,2.0 \
-  --alpha-min 0.1 \
-  --alpha-max 3.0 \
-  --alpha-points 25 \
-  --alpha-grid-scale log \
-  --alpha-prior-type log_uniform \
-  --make-gif \
-  --gif-fps 2.0 \
-  --outdir joint_ex_437_explicit_alpha_grid
-```
-
-If `--alpha-candidates` is supplied, it overrides the generated alpha grid settings.
 
 ### Generated counts without GIFs
 
@@ -238,17 +200,13 @@ python invisible_palette_joint_toolkit_with_gif.py \
   --c-max 20 \
   --prior-type uniform \
   --prior-lam 0.2 \
-  --fixed-alpha 0.5 \
-  --alpha-min 0.1 \
-  --alpha-max 3.0 \
-  --alpha-points 25 \
-  --alpha-grid-scale log \
-  --alpha-prior-type log_uniform \
+  --alpha 0.5 \
   --gif-fps 2.0 \
-  --outdir joint_results_frames_only
+  --no-gif \
+  --outdir joint_results_static_only
 ```
 
-Omitting `--make-gif` keeps:
+By default this script generates GIFs. Using `--no-gif` keeps:
 
 - static plots,
 - summary CSV,
@@ -268,41 +226,14 @@ but skips GIF creation.
 
 `--prior-lam` only matters when `--prior-type geometric`.
 
-### Prior on `alpha`
+### Fixed-alpha Dirichlet comparison model
 
-- `--alpha-prior-type uniform`
-- `--alpha-prior-type log_uniform`
+- `--alpha 0.5`
 
-### Fixed-alpha comparison model
-
-- `--fixed-alpha 0.5`
-
-This controls the `fixed_alpha_dirichlet` comparison model that is shown beside:
+This controls the `full_dirichlet` comparison model that is shown beside:
 
 - `full_uniform`
 - the joint `(C, alpha)` model
-
-### Alpha grid construction
-
-You have two choices:
-
-1. supply the alpha grid directly with:
-
-```bash
---alpha-candidates 0.1,0.2,0.5,1.0,2.0
-```
-
-2. generate it from:
-
-- `--alpha-min`
-- `--alpha-max`
-- `--alpha-points`
-- `--alpha-grid-scale`
-
-where `--alpha-grid-scale` is either:
-
-- `linear`
-- `log`
 
 ### Notes
 
@@ -329,13 +260,7 @@ python invisible_palette_joint_toolkit_with_gif.py \
   --c-max 20 \
   --prior-type uniform \
   --prior-lam 0.2 \
-  --fixed-alpha 0.5 \
-  --alpha-min 0.1 \
-  --alpha-max 3.0 \
-  --alpha-points 25 \
-  --alpha-grid-scale log \
-  --alpha-prior-type log_uniform \
-  --make-gif \
+  --alpha 0.5 \
   --gif-fps 2.0 \
   --outdir joint_results
 ```
