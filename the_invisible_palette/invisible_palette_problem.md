@@ -133,8 +133,6 @@ p(C \mid \mathbf{x}) \propto p(\mathbf{x} \mid C)\,p(C)
 \mathbb{E}[C \mid \mathbf{x}]
 \]
 
----
-
 ## Intuition
 
 The inference balances:
@@ -194,8 +192,66 @@ This setup connects to:
 
 > The number of distinct colours is not observed directly — it must be inferred from the structure of repetitions and discoveries in the sample stream.
 
----
-
 ## One-line Summary
 
 **Estimate hidden diversity not by enumeration, but by the statistics of repetition.**
+
+---
+
+## Simple Extension: Infer Support and Skew Jointly
+
+The Bayesian support-estimation model above treats the Dirichlet concentration `alpha` as fixed.
+
+A very natural extension is to infer both:
+
+- the hidden number of colours \(C\),
+- the concentration / skew parameter \(\alpha\).
+
+Assume:
+
+- \(C\) colours,
+- probabilities:
+  \[
+  (p_1,\dots,p_C) \sim \text{Dirichlet}(\alpha,\dots,\alpha),
+  \]
+- priors:
+  \[
+  p(C), \qquad p(\alpha).
+  \]
+
+Then the joint posterior becomes:
+
+\[
+p(C,\alpha \mid \mathbf{x})
+\propto
+p(\mathbf{x} \mid C,\alpha)\,p(C)\,p(\alpha),
+\]
+
+where
+
+\[
+p(\mathbf{x} \mid C,\alpha)
+\propto
+(C)_k \cdot
+\frac{\Gamma(C\alpha)}{\Gamma(t+C\alpha)}
+\prod_{j=1}^k \frac{\Gamma(x_j+\alpha)}{\Gamma(\alpha)}.
+\]
+
+This helps the data distinguish between:
+
+- genuinely many unseen colours,
+- fewer colours with strongly uneven probabilities.
+
+So the same repetition structure can support inference not only about hidden support size, but also about how uniform or skewed the hidden colour probabilities are.
+
+For this joint model, useful summaries include:
+
+\[
+(\hat{C}, \hat{\alpha}) = \arg\max_{C,\alpha} p(C,\alpha \mid \mathbf{x})
+\]
+
+and
+
+\[
+\mathbb{E}[C \mid \mathbf{x}], \qquad \mathbb{E}[\alpha \mid \mathbf{x}].
+\]
