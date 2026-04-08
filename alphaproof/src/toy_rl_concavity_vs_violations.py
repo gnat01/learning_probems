@@ -1,4 +1,9 @@
 from pathlib import Path
+import os
+import tempfile
+
+os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "matplotlib"))
+
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")

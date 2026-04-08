@@ -13,17 +13,17 @@ This script exposes all key knobs from the earlier toy:
 - optional fixed random seed offset
 
 Example:
-    python toy_rl_concavity_vs_violations_cli.py \
+    python src/toy_rl_concavity_vs_violations_cli.py \
         --bandit-episodes 3000 \
         --sparse-episodes 20000 \
         --horizon 14 \
         --shaping 0.0 \
         --sparse-lr 0.08 \
         --n-seeds 1 \
-        --outdir results
+        --outdir results/run
 
 If you want a much sharper "phase transition"-like curve, try:
-    python toy_rl_concavity_vs_violations_cli.py \
+    python src/toy_rl_concavity_vs_violations_cli.py \
         --sparse-episodes 25000 \
         --horizon 16 \
         --shaping 0.0 \
@@ -33,6 +33,11 @@ If you want a much sharper "phase transition"-like curve, try:
 
 from pathlib import Path
 import argparse
+import os
+import tempfile
+
+os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "matplotlib"))
+
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")

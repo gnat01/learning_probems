@@ -19,10 +19,10 @@ The script simulates two toy RL regimes:
 
 It then writes four plots:
 
-- `toy_rl_learning_curves.png`
-- `toy_rl_marginal_gains.png`
-- `toy_rl_second_differences.png`
-- `toy_rl_sparse_depth_probs.png`
+- `results/toy_rl_learning_curves.png`
+- `results/toy_rl_marginal_gains.png`
+- `results/toy_rl_second_differences.png`
+- `results/toy_rl_sparse_depth_probs.png`
 
 These plots are meant to help you visually compare:
 
@@ -56,22 +56,22 @@ python3 -m pip install numpy matplotlib
 
 ## 3. Basic way to run it
 
-From the directory containing the script:
+From the repo root:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py
+python src/toy_rl_concavity_vs_violations_cli.py
 ```
 
 or, if needed:
 
 ```bash
-python3 toy_rl_concavity_vs_violations_cli.py
+python3 src/toy_rl_concavity_vs_violations_cli.py
 ```
 
 To see all available flags:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py --help
+python src/toy_rl_concavity_vs_violations_cli.py --help
 ```
 
 ---
@@ -83,20 +83,28 @@ By default, output files are written to the **current working directory**.
 So if you run:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py
+python src/toy_rl_concavity_vs_violations_cli.py
 ```
 
-you should see these files appear in the same folder:
+from the repo root, the PNGs will appear at the top level of `alphaproof/`.
 
-- `toy_rl_learning_curves.png`
-- `toy_rl_marginal_gains.png`
-- `toy_rl_second_differences.png`
-- `toy_rl_sparse_depth_probs.png`
-
-To send outputs to a separate folder:
+The cleaner option is to set an output directory explicitly:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py --outdir results
+python src/toy_rl_concavity_vs_violations_cli.py --outdir results/run
+```
+
+That will create `results/run/` if it does not already exist, and write:
+
+- `results/run/toy_rl_learning_curves.png`
+- `results/run/toy_rl_marginal_gains.png`
+- `results/run/toy_rl_second_differences.png`
+- `results/run/toy_rl_sparse_depth_probs.png`
+
+You can also use the runner script:
+
+```bash
+bash src/run_toy_rl_concavity_vs_violations.sh
 ```
 
 That will create `results/` if it does not already exist.
@@ -105,7 +113,7 @@ That will create `results/` if it does not already exist.
 
 ## 5. What the plots mean
 
-## `toy_rl_learning_curves.png`
+## `results/toy_rl_learning_curves.png`
 
 This is the main learning-curve plot.
 
@@ -118,7 +126,7 @@ Use it to inspect the overall shape of performance versus compute budget.
 
 ---
 
-## `toy_rl_marginal_gains.png`
+## `results/toy_rl_marginal_gains.png`
 
 This plots a smoothed version of the discrete increment:
 
@@ -137,7 +145,7 @@ If the sparse regime has a visible hump here, that is evidence of a discovery-dr
 
 ---
 
-## `toy_rl_second_differences.png`
+## `results/toy_rl_second_differences.png`
 
 This plots a smoothed discrete second difference.
 
@@ -150,7 +158,7 @@ Use this plot when you want the cleanest visual proxy for “where does the curv
 
 ---
 
-## `toy_rl_sparse_depth_probs.png`
+## `results/toy_rl_sparse_depth_probs.png`
 
 This shows, for the sparse deep-path regime, the mean probability of taking the correct action at each depth.
 
@@ -241,7 +249,7 @@ Practical advice:
 Example:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py --horizon 16 --shaping 0.0 --outdir h16_sparse
+python src/toy_rl_concavity_vs_violations_cli.py --horizon 16 --shaping 0.0 --outdir results/h16_sparse
 ```
 
 ---
@@ -576,7 +584,7 @@ Practical advice:
 Use this first to make sure everything works.
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py
+python src/toy_rl_concavity_vs_violations_cli.py
 ```
 
 What to expect:
@@ -589,7 +597,7 @@ What to expect:
 ## Recipe B: much sparser regime
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --sparse-episodes 25000 \
   --horizon 8 \
   --shaping 0.0 \
@@ -611,7 +619,7 @@ This is the run to try if you want the sparse regime to look much more event-dri
 ## Recipe C: smoother averaged sparse behavior
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --sparse-episodes 20000 \
   --horizon 12 \
   --shaping 0.02 \
@@ -630,7 +638,7 @@ What this is for:
 Run one with shaping and one without.
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --horizon 14 \
   --shaping 0.0 \
   --n-seeds 1 \
@@ -639,7 +647,7 @@ python toy_rl_concavity_vs_violations_cli.py \
 ```
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --horizon 14 \
   --shaping 0.08 \
   --n-seeds 1 \
@@ -656,9 +664,9 @@ What to look for:
 ## Recipe E: compare horizon effects
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py --horizon 8  --outdir h8
-python toy_rl_concavity_vs_violations_cli.py --horizon 12 --outdir h12
-python toy_rl_concavity_vs_violations_cli.py --horizon 16 --outdir h16
+python src/toy_rl_concavity_vs_violations_cli.py --horizon 8  --outdir results/h8
+python src/toy_rl_concavity_vs_violations_cli.py --horizon 12 --outdir results/h12
+python src/toy_rl_concavity_vs_violations_cli.py --horizon 16 --outdir results/h16
 ```
 
 What to look for:
@@ -669,7 +677,9 @@ What to look for:
 
 ## 8. How to inspect results on Mac
 
-Open the PNG files directly from terminal:
+Open the PNG files directly from terminal.
+
+If you used the default output location from the repo root:
 
 ```bash
 open toy_rl_learning_curves.png
@@ -678,13 +688,14 @@ open toy_rl_second_differences.png
 open toy_rl_sparse_depth_probs.png
 ```
 
-If you used `--outdir results`, then:
+If you used the recommended runner or `--outdir results/run`:
 
 ```bash
-open results/toy_rl_learning_curves.png
+open results/run/toy_rl_learning_curves.png
+open results/run/toy_rl_marginal_gains.png
+open results/run/toy_rl_second_differences.png
+open results/run/toy_rl_sparse_depth_probs.png
 ```
-
-and so on.
 
 ---
 
@@ -702,7 +713,7 @@ Most likely causes:
 Try:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --horizon 16 \
   --shaping 0.0 \
   --n-seeds 1 \
@@ -722,7 +733,7 @@ Try:
 Example:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --n-seeds 40 \
   --mg-window 120 \
   --sd-window 180
@@ -770,19 +781,19 @@ These five flags do most of the conceptual work.
 See help:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py --help
+python src/toy_rl_concavity_vs_violations_cli.py --help
 ```
 
 Default run:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py
+python src/toy_rl_concavity_vs_violations_cli.py
 ```
 
 Sharper sparse regime:
 
 ```bash
-python toy_rl_concavity_vs_violations_cli.py \
+python src/toy_rl_concavity_vs_violations_cli.py \
   --sparse-episodes 25000 \
   --horizon 16 \
   --shaping 0.0 \
